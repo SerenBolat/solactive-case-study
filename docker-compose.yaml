@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  backend:
+    image: "backend"
+    build: ./
+    ports:
+      - "8080:8080"
+    hostname: backend
+    links:
+      - "db:mongo"
+  db:
+    image: "mongo"
+    hostname: mongo
+    ports:
+      - "27017:27017"
