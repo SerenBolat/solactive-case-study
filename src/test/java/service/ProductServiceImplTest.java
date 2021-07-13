@@ -9,16 +9,14 @@ import com.serenbo.exception.DataNotFoundException;
 import com.serenbo.models.ProductEntity;
 import com.serenbo.repository.ProductRepository;
 import com.serenbo.service.ProductServiceImpl;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /**
  * @author Seren Bolat
@@ -26,21 +24,23 @@ import static org.mockito.ArgumentMatchers.*;
 @RunWith(MockitoJUnitRunner.class)
 public class ProductServiceImplTest {
 
+    private final ObjectMapper mapper = new ObjectMapper();
     @Mock
     private ProductRepository productRepository;
     @InjectMocks
     private ProductServiceImpl productService;
-
     private ProductEntity productEntity;
     private ProductDto request;
-    private String jsonString;
+
+    @Captor
+    private ArgumentCaptor<ProductEntity> argumentCaptor;
 
     @Before
     public void setup() throws JsonProcessingException {
         productService = new ProductServiceImpl(productRepository);
 
         ObjectMapper mapper = new ObjectMapper();
-        jsonString = "{ \"attributes\" : \n" +
+        String jsonString = "{ \"attributes\" : \n" +
                 "      {\n" +
                 "         \"prefix.interval\": 10,\n" +
                 "         \"prefix.isPre\": \"Seren Bolat\"\n" +
@@ -68,24 +68,47 @@ public class ProductServiceImplTest {
 
     @Test
     public void createProduct() throws JsonProcessingException {
-        Mockito.when(productRepository.save(any())).thenReturn(productEntity);
-        productService.createProduct(request);
-        Assert.assertEquals("123", productEntity.getId());
+        Mockito.when(productRepository.save(argumentCaptor.capture())).thenReturn(productEntity);
+
+        ProductDto product = productService.createProduct(request);
+
+        assertThat(argumentCaptor.getValue())
+                .isNotNull()
+                .isExactlyInstanceOf(ProductEntity.class);
+        Mockito.verify(productRepository, Mockito.times(1)).save(argumentCaptor.getValue());
+        assertHasSamePropertyValues(product, productEntity);
     }
 
     @Test
     public void getProduct() throws JsonProcessingException {
-        Mockito.when(productRepository.findByAsOfAndId(anyInt(), anyString())).thenReturn(productEntity);
-        productService.getProduct("123", 1);
-        Assert.assertEquals(jsonString, productEntity.getAttributes());
+        Mockito.when(productRepository.findByAsOfAndId(1, "123")).thenReturn(productEntity);
+        ProductDto product = productService.getProduct("123", 1);
+
+        assertThat(product)
+                .isNotNull()
+                .isExactlyInstanceOf(ProductDto.class);
+        assertHasSamePropertyValues(product, productEntity);
     }
 
-    @Test(expected = DataNotFoundException.class)
-    public void getProduct_WithException() throws JsonProcessingException {
-        Mockito.when(productRepository.findByAsOfAndId(anyInt(), anyString()))
+    @Test
+    public void getProduct_WithException() {
+        Mockito.when(productRepository.findByAsOfAndId(2, "123"))
                 .thenThrow(new DataNotFoundException());
-        productService.getProduct("123", 2);
-        Assert.assertEquals(jsonString, productEntity.getAttributes());
+
+        Throwable throwable = catchThrowable(() -> productService.getProduct("123", 2));
+
+        assertThat(throwable)
+                .isNotNull()
+                .isExactlyInstanceOf(DataNotFoundException.class);
+    }
+
+    private void assertHasSamePropertyValues(ProductDto product, ProductEntity productEntity) throws JsonProcessingException {
+        assertThat(product.getId()).isEqualTo(productEntity.getId());
+        assertThat(product.getName()).isEqualTo(productEntity.getName());
+        assertThat(product.getBusiness()).isEqualTo(productEntity.getBusiness());
+        assertThat(product.getCurrency()).isEqualTo(productEntity.getCurrency());
+        assertThat(product.getAsOf()).isEqualTo(productEntity.getAsOf());
+        assertThat(product.getAttributes()).isEqualTo(mapper.readTree(productEntity.getAttributes()));
     }
 
 }

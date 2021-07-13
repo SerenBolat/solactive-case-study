@@ -19,7 +19,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.mockito.ArgumentMatchers.*;
 
 /**
- * @author Umut Ismet Erdolu
+ * @author Seren Bolat
  */
 @RunWith(MockitoJUnitRunner.class)
 public class SolactiveServiceControllerTest {
