@@ -7,7 +7,7 @@ This is a web service which is responsible for create a new product and retrive 
 
 1. [Service Documentation](#service-documentation)
 2. [Application Components](#application-components)
-3. [Tecnology Stac](#technology-stack)
+3. [Tecnology Stack](#technology-stack)
 4. [Project Setup](#project-setup)
 
 ## Service Documentation
